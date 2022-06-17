@@ -616,6 +616,38 @@ class Client extends EventEmitter {
      * @param {string} [options.chatId]
      * @returns {Promise<Message[]>}
      */
+    
+     async getMessageById(messageId) {
+        const msg = await this.pupPage.evaluate(async messageId => {
+            let msg = window.Store.Msg.get(messageId);
+            if(msg) return window.WWebJS.getMessageModel(msg);
+
+            const params = messageId.split('_');
+            if(params.length !== 3) throw new Error('Invalid serialized message id specified');
+
+            const [fromMe, chatId, id] = params;
+            const chatWid = window.Store.WidFactory.createWid(chatId);
+            const fullMsgId = {
+                fromMe: Boolean(fromMe),
+                remote: chatWid,
+                id,
+            };
+
+            const msgKey = new window.Store.MsgKey(fullMsgId);
+            const chat = await window.Store.Chat.find(msgKey.remote);
+            const ctx = await chat.getSearchContext(msgKey);
+            if(ctx.collection && ctx.collection.loadAroundPromise) {
+                await ctx.collection.loadAroundPromise;
+            }
+
+            msg = window.Store.Msg.get(messageId);
+            if(msg) return window.WWebJS.getMessageModel(msg);
+        }, messageId);
+
+        if(msg) return new Message(this, msg);
+        return null;
+    }
+    
     async searchMessages(query, options = {}) {
         const messages = await this.pupPage.evaluate(async (query, page, count, remote) => {
             const { messages } = await window.Store.Msg.search(query, page, count, remote);
