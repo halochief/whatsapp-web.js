@@ -290,6 +290,18 @@ describe('Client', function() {
             });
         });
     
+         describe('Get Messages', function() {
+            it ('can get a message by it\'s ID', async function() {
+                const chat = await client.getChatById(remoteId);
+                const [message] = await chat.fetchMessages({limit: 1});
+                const messageById = await client.getMessageById(message.id._serialized);
+                expect(messageById).to.exist;
+                expect(messageById).to.be.instanceOf(Message);
+                expect(messageById).to.be.equal(message);
+            });
+        });
+
+        
         describe('Send Messages', function () {            
             it('can send a message', async function() {
                 const msg = await client.sendMessage(remoteId, 'hello world');
